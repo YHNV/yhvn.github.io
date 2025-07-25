@@ -1,0 +1,1165 @@
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会议室预约系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.4.0/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  
+  <!-- Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#36D399',
+            danger: '#F87272',
+            warning: '#FBBD23',
+            info: '#3ABFF8',
+            dark: '#1E293B',
+            light: '#F8FAFC'
+          },
+          fontFamily: {
+            inter: ['Inter', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .card-shadow {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+      }
+      .hover-scale {
+        transition: transform 0.2s ease-in-out;
+      }
+      .hover-scale:hover {
+        transform: scale(1.02);
+      }
+    }
+  </style>
+</head>
+<body class="font-inter bg-gray-50 text-dark min-h-screen flex flex-col">
+  <!-- 顶部导航栏 -->
+  <header id="navbar" class="fixed w-full bg-white shadow-md z-50 transition-all duration-300">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center">
+          <a href="#" class="flex items-center">
+            <i class="fa fa-calendar-check-o text-primary text-2xl mr-2"></i>
+            <span class="font-bold text-xl text-primary">会议室预约系统</span>
+          </a>
+        </div>
+        
+        <!-- 桌面导航 -->
+        <nav class="hidden md:flex space-x-8">
+          <a href="#dashboard" class="text-gray-600 hover:text-primary px-3 py-2 text-sm font-medium transition-colors duration-200">首页</a>
+          <a href="#rooms" class="text-gray-600 hover:text-primary px-3 py-2 text-sm font-medium transition-colors duration-200">会议室</a>
+          <a href="#booking" class="text-gray-600 hover:text-primary px-3 py-2 text-sm font-medium transition-colors duration-200">我要预约</a>
+          <a href="#history" class="text-gray-600 hover:text-primary px-3 py-2 text-sm font-medium transition-colors duration-200">预约记录</a>
+        </nav>
+        
+        <!-- 用户菜单 -->
+        <div class="hidden md:flex items-center space-x-4">
+          <button id="notificationBtn" class="text-gray-500 hover:text-primary p-1 rounded-full transition-colors duration-200 relative">
+            <i class="fa fa-bell-o text-lg"></i>
+            <span class="absolute top-0 right-0 h-4 w-4 bg-danger rounded-full flex items-center justify-center">
+              <span class="text-white text-xs">3</span>
+            </span>
+          </button>
+          <div class="relative group">
+            <button class="flex items-center text-gray-700 hover:text-primary transition-colors duration-200">
+              <img src="https://picsum.photos/id/1005/40/40" alt="用户头像" class="h-8 w-8 rounded-full object-cover mr-2">
+              <span class="font-medium">张三</span>
+              <i class="fa fa-caret-down ml-1"></i>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right scale-95 group-hover:scale-100">
+              <a href="#profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">个人资料</a>
+              <a href="#settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">设置</a>
+              <div class="border-t border-gray-100 my-1"></div>
+              <a href="#logout" class="block px-4 py-2 text-sm text-danger hover:bg-gray-100">退出登录</a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 移动端菜单按钮 -->
+        <div class="md:hidden flex items-center">
+          <button id="mobileMenuBtn" class="text-gray-600 hover:text-primary p-2 rounded-md focus:outline-none">
+            <i class="fa fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div id="mobileMenu" class="md:hidden hidden bg-white border-t border-gray-100">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        <a href="#dashboard" class="text-gray-600 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">首页</a>
+        <a href="#rooms" class="text-gray-600 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">会议室</a>
+        <a href="#booking" class="text-gray-600 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">我要预约</a>
+        <a href="#history" class="text-gray-600 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">预约记录</a>
+      </div>
+      <div class="pt-4 pb-3 border-t border-gray-100">
+        <div class="flex items-center px-5">
+          <div class="flex-shrink-0">
+            <img src="https://picsum.photos/id/1005/40/40" alt="用户头像" class="h-10 w-10 rounded-full object-cover">
+          </div>
+          <div class="ml-3">
+            <div class="text-base font-medium text-gray-800">张三</div>
+            <div class="text-sm font-medium text-gray-500">zhangsan@example.com</div>
+          </div>
+        </div>
+        <div class="mt-3 px-2 space-y-1">
+          <a href="#profile" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-primary">个人资料</a>
+          <a href="#settings" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-primary">设置</a>
+          <a href="#logout" class="block px-3 py-2 rounded-md text-base font-medium text-danger hover:bg-gray-100">退出登录</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="flex-grow pt-16">
+    <!-- 页面内容将由 Vue 动态加载 -->
+    <div id="app"></div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="bg-dark text-white py-8">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div>
+          <h3 class="text-lg font-semibold mb-4">会议室预约系统</h3>
+          <p class="text-gray-400 text-sm">高效、便捷的会议室管理解决方案，帮助您轻松预约和管理会议室资源。</p>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold mb-4">快速链接</h3>
+          <ul class="space-y-2 text-sm text-gray-400">
+            <li><a href="#dashboard" class="hover:text-white transition-colors duration-200">首页</a></li>
+            <li><a href="#rooms" class="hover:text-white transition-colors duration-200">会议室</a></li>
+            <li><a href="#booking" class="hover:text-white transition-colors duration-200">我要预约</a></li>
+            <li><a href="#history" class="hover:text-white transition-colors duration-200">预约记录</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold mb-4">联系我们</h3>
+          <ul class="space-y-2 text-sm text-gray-400">
+            <li class="flex items-center"><i class="fa fa-map-marker mr-2"></i> 北京市海淀区中关村大街1号</li>
+            <li class="flex items-center"><i class="fa fa-phone mr-2"></i> 010-12345678</li>
+            <li class="flex items-center"><i class="fa fa-envelope mr-2"></i> support@meetingroom.com</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold mb-4">关注我们</h3>
+          <div class="flex space-x-4">
+            <a href="#" class="text-gray-400 hover:text-white transition-colors duration-200">
+              <i class="fa fa-weixin text-xl"></i>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors duration-200">
+              <i class="fa fa-weibo text-xl"></i>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors duration-200">
+              <i class="fa fa-linkedin text-xl"></i>
+            </a>
+          </div>
+          <p class="mt-4 text-sm text-gray-400">订阅我们的通讯，获取最新资讯</p>
+          <div class="mt-2 flex">
+            <input type="email" placeholder="您的邮箱地址" class="px-3 py-2 rounded-l-md text-sm bg-gray-700 text-white focus:outline-none focus:ring-1 focus:ring-primary w-full">
+            <button class="bg-primary hover:bg-primary/90 text-white px-3 py-2 rounded-r-md transition-colors duration-200">
+              <i class="fa fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-400">
+        <p>© 2025 会议室预约系统. 保留所有权利.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 模态框组件 -->
+  <div id="modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg p-4">
+      <div id="modalContent" class="bg-white rounded-lg shadow-xl overflow-hidden transform transition-all duration-300 scale-95 opacity-0">
+        <!-- 模态框内容将由 JavaScript 动态填充 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // 导航栏滚动效果
+    window.addEventListener('scroll', function() {
+      const navbar = document.getElementById('navbar');
+      if (window.scrollY > 10) {
+        navbar.classList.add('bg-white/95', 'backdrop-blur-sm');
+        navbar.classList.remove('bg-white');
+      } else {
+        navbar.classList.remove('bg-white/95', 'backdrop-blur-sm');
+        navbar.classList.add('bg-white');
+      }
+    });
+    
+    // 移动端菜单切换
+    document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+      const mobileMenu = document.getElementById('mobileMenu');
+      mobileMenu.classList.toggle('hidden');
+    });
+    
+    // 模态框控制函数
+    function openModal(content) {
+      const modal = document.getElementById('modal');
+      const modalContent = document.getElementById('modalContent');
+      
+      modalContent.innerHTML = content;
+      modal.classList.remove('hidden');
+      
+      // 添加动画效果
+      setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+      
+      // 点击模态框外部关闭
+      modal.querySelector('.absolute.inset-0').addEventListener('click', closeModal);
+      
+      // 关闭按钮事件委托
+      modalContent.addEventListener('click', function(e) {
+        if (e.target.closest('.close-modal')) {
+          closeModal();
+        }
+      });
+    }
+    
+    function closeModal() {
+      const modal = document.getElementById('modal');
+      const modalContent = document.getElementById('modalContent');
+      
+      modalContent.classList.remove('scale-100', 'opacity-100');
+      modalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+    }
+    
+    // 模拟数据
+    const mockData = {
+      rooms: [
+        { id: 1, name: '会议室A', location: '1楼', capacity: 10, facilities: ['投影仪', '白板', '电视'], status: '空闲', image: 'https://picsum.photos/id/1067/400/300' },
+        { id: 2, name: '会议室B', location: '2楼', capacity: 6, facilities: ['投影仪', '白板'], status: '已预约', image: 'https://picsum.photos/id/1060/400/300' },
+        { id: 3, name: '会议室C', location: '3楼', capacity: 20, facilities: ['投影仪', '白板', '电视', '音响'], status: '已预约', image: 'https://picsum.photos/id/1062/400/300' },
+        { id: 4, name: '会议室D', location: '1楼', capacity: 8, facilities: ['投影仪', '白板'], status: '空闲', image: 'https://picsum.photos/id/1064/400/300' },
+        { id: 5, name: '会议室E', location: '2楼', capacity: 12, facilities: ['投影仪', '白板', '电视', '视频会议设备'], status: '维护中', image: 'https://picsum.photos/id/1065/400/300' },
+      ],
+      bookings: [
+        { id: 1, roomId: 2, roomName: '会议室B', userId: 1, userName: '张三', startTime: '2025-07-19 09:00', endTime: '2025-07-19 10:30', status: '已确认', purpose: '团队周会' },
+        { id: 2, roomId: 3, roomName: '会议室C', userId: 2, userName: '李四', startTime: '2025-07-19 10:00', endTime: '2025-07-19 12:00', status: '已确认', purpose: '客户演示' },
+        { id: 3, roomId: 1, roomName: '会议室A', userId: 1, userName: '张三', startTime: '2025-07-19 14:00', endTime: '2025-07-19 16:00', status: '已确认', purpose: '项目评审' },
+        { id: 4, roomId: 2, roomName: '会议室B', userId: 3, userName: '王五', startTime: '2025-07-19 16:00', endTime: '2025-07-19 17:30', status: '待确认', purpose: '部门会议' },
+      ],
+      userBookings: [
+        { id: 1, roomId: 2, roomName: '会议室B', userId: 1, userName: '张三', startTime: '2025-07-19 09:00', endTime: '2025-07-19 10:30', status: '已确认', purpose: '团队周会' },
+        { id: 3, roomId: 1, roomName: '会议室A', userId: 1, userName: '张三', startTime: '2025-07-19 14:00', endTime: '2025-07-19 16:00', status: '已确认', purpose: '项目评审' },
+        { id: 5, roomId: 4, roomName: '会议室D', userId: 1, userName: '张三', startTime: '2025-07-20 10:00', endTime: '2025-07-20 11:30', status: '已确认', purpose: '小组讨论' },
+        { id: 6, roomId: 3, roomName: '会议室C', userId: 1, userName: '张三', startTime: '2025-07-21 14:00', endTime: '2025-07-21 16:00', status: '待确认', purpose: '产品规划' },
+        { id: 7, roomId: 1, roomName: '会议室A', userId: 1, userName: '张三', startTime: '2025-07-22 09:00', endTime: '2025-07-22 11:00', status: '已取消', purpose: '需求讨论' },
+      ]
+    };
+    
+    // 初始化 Vue 应用
+    const { createApp, ref, computed, onMounted } = Vue;
+    
+    const app = createApp({
+      setup() {
+        const currentView = ref('dashboard');
+        const rooms = ref([]);
+        const bookings = ref([]);
+        const userBookings = ref([]);
+        const selectedRoom = ref(null);
+        const selectedDate = ref(new Date().toISOString().split('T')[0]);
+        const filteredBookings = computed(() => {
+          return bookings.value.filter(booking => {
+            return booking.startTime.startsWith(selectedDate.value);
+          });
+        });
+        
+        // 模拟API请求
+        const fetchRooms = async () => {
+          // 实际项目中这里会调用后端API
+          return new Promise(resolve => {
+            setTimeout(() => {
+              rooms.value = mockData.rooms;
+              resolve();
+            }, 500);
+          });
+        };
+        
+        const fetchBookings = async () => {
+          return new Promise(resolve => {
+            setTimeout(() => {
+              bookings.value = mockData.bookings;
+              resolve();
+            }, 500);
+          });
+        };
+        
+        const fetchUserBookings = async () => {
+          return new Promise(resolve => {
+            setTimeout(() => {
+              userBookings.value = mockData.userBookings;
+              resolve();
+            }, 500);
+          });
+        };
+        
+        const goToView = (viewName) => {
+          currentView.value = viewName;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          // 如果是查看会议室详情，获取会议室信息
+          if (viewName === 'roomDetail' && selectedRoom.value) {
+            // 这里可以添加获取会议室详情的API调用
+          }
+        };
+        
+        const selectRoom = (room) => {
+          selectedRoom.value = room;
+          goToView('roomDetail');
+        };
+        
+        const bookRoom = (room) => {
+          selectedRoom.value = room;
+          
+          // 生成预约表单模态框内容
+          const modalContent = `
+            <div class="p-6">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">预约 ${room.name}</h3>
+                <button class="close-modal text-gray-400 hover:text-gray-500">
+                  <i class="fa fa-times"></i>
+                </button>
+              </div>
+              <form id="bookingForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label for="bookingDate" class="block text-sm font-medium text-gray-700 mb-1">日期</label>
+                    <input type="date" id="bookingDate" name="bookingDate" min="${new Date().toISOString().split('T')[0]}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                  </div>
+                  <div>
+                    <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">开始时间</label>
+                    <input type="time" id="startTime" name="startTime" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                  </div>
+                  <div>
+                    <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">结束时间</label>
+                    <input type="time" id="endTime" name="endTime" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                  </div>
+                  <div>
+                    <label for="participants" class="block text-sm font-medium text-gray-700 mb-1">参与人数</label>
+                    <input type="number" id="participants" name="participants" min="1" max="${room.capacity}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                  </div>
+                </div>
+                <div>
+                  <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1">预约用途</label>
+                  <textarea id="purpose" name="purpose" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="请简要描述预约用途"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                  <button type="button" class="close-modal px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">取消</button>
+                  <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">提交预约</button>
+                </div>
+              </form>
+            </div>
+          `;
+          
+          openModal(modalContent);
+          
+          // 添加表单提交事件监听
+          setTimeout(() => {
+            document.getElementById('bookingForm').addEventListener('submit', function(e) {
+              e.preventDefault();
+              
+              // 模拟表单提交
+              const formData = {
+                roomId: room.id,
+                roomName: room.name,
+                date: document.getElementById('bookingDate').value,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                participants: document.getElementById('participants').value,
+                purpose: document.getElementById('purpose').value
+              };
+              
+              // 这里可以添加表单验证逻辑
+              
+              // 模拟API调用
+              console.log('提交预约:', formData);
+              
+              // 显示成功消息
+              closeModal();
+              
+              const successModal = `
+                <div class="p-6 text-center">
+                  <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <i class="fa fa-check text-green-600 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-medium text-gray-900 mb-2">预约成功</h3>
+                  <p class="text-gray-500 mb-4">您已成功预约 ${room.name}，我们将发送确认邮件至您的邮箱。</p>
+                  <div class="mt-4">
+                    <button class="close-modal inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:text-sm">
+                      确定
+                    </button>
+                  </div>
+                </div>
+              `;
+              
+              openModal(successModal);
+              
+              // 刷新预约数据
+              fetchUserBookings();
+            });
+          }, 100);
+        };
+        
+        const cancelBooking = (bookingId) => {
+          // 显示确认对话框
+          const confirmModal = `
+            <div class="p-6">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">取消预约</h3>
+                <button class="close-modal text-gray-400 hover:text-gray-500">
+                  <i class="fa fa-times"></i>
+                </button>
+              </div>
+              <p class="text-gray-700 mb-6">您确定要取消这个预约吗？此操作无法撤销。</p>
+              <div class="flex justify-end space-x-3">
+                <button class="close-modal px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">取消</button>
+                <button id="confirmCancelBtn" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-danger hover:bg-danger/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-danger">确认取消</button>
+              </div>
+            </div>
+          `;
+          
+          openModal(confirmModal);
+          
+          // 添加确认按钮事件监听
+          setTimeout(() => {
+            document.getElementById('confirmCancelBtn').addEventListener('click', function() {
+              // 模拟API调用
+              console.log('取消预约:', bookingId);
+              
+              // 更新预约状态
+              const bookingIndex = userBookings.value.findIndex(b => b.id === bookingId);
+              if (bookingIndex !== -1) {
+                userBookings.value[bookingIndex].status = '已取消';
+              }
+              
+              closeModal();
+              
+              // 显示成功消息
+              const successModal = `
+                <div class="p-6 text-center">
+                  <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <i class="fa fa-check text-green-600 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-medium text-gray-900 mb-2">取消成功</h3>
+                  <p class="text-gray-500 mb-4">您已成功取消预约。</p>
+                  <div class="mt-4">
+                    <button class="close-modal inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:text-sm">
+                      确定
+                    </button>
+                  </div>
+                </div>
+              `;
+              
+              openModal(successModal);
+            });
+          }, 100);
+        };
+        
+        const getStatusColor = (status) => {
+          switch(status) {
+            case '已确认':
+              return 'bg-green-100 text-green-800';
+            case '待确认':
+              return 'bg-yellow-100 text-yellow-800';
+            case '已取消':
+              return 'bg-gray-100 text-gray-800';
+            case '已过期':
+              return 'bg-gray-100 text-gray-800';
+            case '空闲':
+              return 'bg-green-100 text-green-800';
+            case '已预约':
+              return 'bg-yellow-100 text-yellow-800';
+            case '维护中':
+              return 'bg-red-100 text-red-800';
+            default:
+              return 'bg-gray-100 text-gray-800';
+          }
+        };
+        
+        // 初始化数据
+        onMounted(async () => {
+          await fetchRooms();
+          await fetchBookings();
+          await fetchUserBookings();
+        });
+        
+        return {
+          currentView,
+          rooms,
+          bookings,
+          userBookings,
+          selectedRoom,
+          selectedDate,
+          filteredBookings,
+          goToView,
+          selectRoom,
+          bookRoom,
+          cancelBooking,
+          getStatusColor
+        };
+      },
+      template: `
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <!-- 仪表盘 -->
+          <div v-if="currentView === 'dashboard'" class="space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div class="bg-white rounded-xl p-6 shadow-md hover-scale">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-500 text-sm">总会议室</p>
+                    <h3 class="text-2xl font-bold mt-1">{{ rooms.length }}</h3>
+                  </div>
+                  <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <i class="fa fa-building text-primary text-xl"></i>
+                  </div>
+                </div>
+                <div class="mt-4 flex items-center text-sm">
+                  <span class="text-green-500 flex items-center">
+                    <i class="fa fa-arrow-up mr-1"></i> 2 个新增
+                  </span>
+                  <span class="text-gray-500 ml-2">相比上月</span>
+                </div>
+              </div>
+              
+              <div class="bg-white rounded-xl p-6 shadow-md hover-scale">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-500 text-sm">今日预约</p>
+                    <h3 class="text-2xl font-bold mt-1">{{ filteredBookings.length }}</h3>
+                  </div>
+                  <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fa fa-calendar-check-o text-secondary text-xl"></i>
+                  </div>
+                </div>
+                <div class="mt-4 flex items-center text-sm">
+                  <span class="text-green-500 flex items-center">
+                    <i class="fa fa-arrow-up mr-1"></i> 5 个新增
+                  </span>
+                  <span class="text-gray-500 ml-2">相比昨日</span>
+                </div>
+              </div>
+              
+              <div class="bg-white rounded-xl p-6 shadow-md hover-scale">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-500 text-sm">我的预约</p>
+                    <h3 class="text-2xl font-bold mt-1">{{ userBookings.filter(b => b.status !== '已取消').length }}</h3>
+                  </div>
+                  <div class="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+                    <i class="fa fa-user-circle-o text-purple-600 text-xl"></i>
+                  </div>
+                </div>
+                <div class="mt-4 flex items-center text-sm">
+                  <span class="text-green-500 flex items-center">
+                    <i class="fa fa-arrow-up mr-1"></i> 1 个新增
+                  </span>
+                  <span class="text-gray-500 ml-2">相比昨日</span>
+                </div>
+              </div>
+              
+              <div class="bg-white rounded-xl p-6 shadow-md hover-scale">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-500 text-sm">空闲会议室</p>
+                    <h3 class="text-2xl font-bold mt-1">{{ rooms.filter(r => r.status === '空闲').length }}</h3>
+                  </div>
+                  <div class="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                    <i class="fa fa-clock-o text-yellow-600 text-xl"></i>
+                  </div>
+                </div>
+                <div class="mt-4 flex items-center text-sm">
+                  <span class="text-red-500 flex items-center">
+                    <i class="fa fa-arrow-down mr-1"></i> 3 个减少
+                  </span>
+                  <span class="text-gray-500 ml-2">相比昨日</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl p-6 shadow-md">
+                  <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">今日预约情况</h2>
+                    <div class="flex items-center space-x-2">
+                      <button class="px-3 py-1 text-sm bg-primary/10 text-primary rounded-md">今日</button>
+                      <button class="px-3 py-1 text-sm text-gray-500 hover:bg-gray-100 rounded-md">本周</button>
+                      <button class="px-3 py-1 text-sm text-gray-500 hover:bg-gray-100 rounded-md">本月</button>
+                    </div>
+                  </div>
+                  <div class="h-80">
+                    <canvas id="bookingChart"></canvas>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <div class="bg-white rounded-xl p-6 shadow-md">
+                  <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">会议室状态</h2>
+                    <button @click="goToView('rooms')" class="text-primary text-sm hover:underline">查看全部</button>
+                  </div>
+                  <div class="space-y-4">
+                    <div v-for="room in rooms" :key="room.id" class="flex items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                      <img :src="room.image" alt="会议室图片" class="h-16 w-16 rounded-md object-cover">
+                      <div class="ml-4 flex-grow">
+                        <h3 class="font-medium text-gray-900">{{ room.name }}</h3>
+                        <div class="flex items-center mt-1">
+                          <i class="fa fa-map-marker text-gray-400 mr-1 text-sm"></i>
+                          <span class="text-gray-500 text-sm">{{ room.location }}</span>
+                          <span class="mx-2 text-gray-300">|</span>
+                          <i class="fa fa-users text-gray-400 mr-1 text-sm"></i>
+                          <span class="text-gray-500 text-sm">{{ room.capacity }}人</span>
+                        </div>
+                      </div>
+                      <span class="px-2 py-1 text-xs rounded-full whitespace-nowrap" :class="getStatusColor(room.status)">{{ room.status }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-md">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">我的预约</h2>
+                <button @click="goToView('history')" class="text-primary text-sm hover:underline">查看全部</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">会议室</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用途</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                      <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr v-for="booking in userBookings.filter(b => b.status !== '已取消').slice(0, 5)" :key="booking.id">
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="flex-shrink-0 h-10 w-10">
+                            <img :src="rooms.find(r => r.id === booking.roomId)?.image || 'https://picsum.photos/id/1067/100/100'" alt="会议室图片" class="h-10 w-10 rounded-md object-cover">
+                          </div>
+                          <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">{{ booking.roomName }}</div>
+                            <div class="text-sm text-gray-500">{{ rooms.find(r => r.id === booking.roomId)?.location }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ booking.startTime.split(' ')[0] }}</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ booking.startTime.split(' ')[1] }} - {{ booking.endTime.split(' ')[1] }}</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ booking.purpose }}</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusColor(booking.status)">{{ booking.status }}</span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button v-if="booking.status === '已确认'" @click="cancelBooking(booking.id)" class="text-danger hover:text-danger/80 mr-3">取消</button>
+                        <button @click="selectRoom(rooms.find(r => r.id === booking.roomId))" class="text-primary hover:text-primary/80">详情</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-if="userBookings.filter(b => b.status !== '已取消').length === 0" class="py-8 text-center text-gray-500">
+                <i class="fa fa-calendar-o text-3xl mb-3"></i>
+                <p>您还没有任何预约记录</p>
+                <button @click="goToView('booking')" class="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors duration-200">立即预约</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 会议室列表 -->
+          <div v-if="currentView === 'rooms'" class="space-y-8">
+            <div class="bg-white rounded-xl p-6 shadow-md">
+              <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                <div>
+                  <h2 class="text-xl font-bold">会议室列表</h2>
+                  <p class="text-gray-500 mt-1">共有 {{ rooms.length }} 个会议室</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex items-center space-x-3">
+                  <div class="relative">
+                    <input type="text" placeholder="搜索会议室..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                  </div>
+                  <div class="relative">
+                    <select class="pl-4 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white">
+                      <option value="">全部位置</option>
+                      <option value="1楼">1楼</option>
+                      <option value="2楼">2楼</option>
+                      <option value="3楼">3楼</option>
+                    </select>
+                    <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                  </div>
+                  <div class="relative">
+                    <select class="pl-4 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white">
+                      <option value="">全部容量</option>
+                      <option value="1-5人">1-5人</option>
+                      <option value="6-10人">6-10人</option>
+                      <option value="11-20人">11-20人</option>
+                      <option value="20人以上">20人以上</option>
+                    </select>
+                    <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="room in rooms" :key="room.id" class="bg-white rounded-xl overflow-hidden shadow-md hover-scale border border-gray-100">
+                  <img :src="room.image" alt="会议室图片" class="w-full h-48 object-cover">
+                  <div class="p-5">
+                    <div class="flex justify-between items-start mb-3">
+                      <h3 class="text-lg font-semibold text-gray-900">{{ room.name }}</h3>
+                      <span class="px-2 py-1 text-xs rounded-full whitespace-nowrap" :class="getStatusColor(room.status)">{{ room.status }}</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-500 mb-3">
+                      <i class="fa fa-map-marker mr-1"></i>
+                      <span>{{ room.location }}</span>
+                      <span class="mx-2">|</span>
+                      <i class="fa fa-users mr-1"></i>
+                      <span>{{ room.capacity }}人</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                      <span v-for="facility in room.facilities" :key="facility" class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">{{ facility }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <button @click="selectRoom(room)" class="px-4 py-2 border border-primary text-primary rounded-md hover:bg-primary/5 transition-colors duration-200">查看详情</button>
+                      <button v-if="room.status === '空闲'" @click="bookRoom(room)" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors duration-200">立即预约</button>
+                      <button v-else disabled class="px-4 py-2 bg-gray-200 text-gray-400 rounded-md cursor-not-allowed">不可预约</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 会议室详情 -->
+          <div v-if="currentView === 'roomDetail' && selectedRoom" class="space-y-8">
+            <div class="bg-white rounded-xl overflow-hidden shadow-md">
+              <div class="grid grid-cols-1 lg:grid-cols-3">
+                <div class="lg:col-span-2">
+                  <div class="relative h-64 lg:h-80">
+                    <img :src="selectedRoom.image" alt="会议室图片" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end">
+                      <div class="p-6 text-white">
+                        <h2 class="text-2xl font-bold">{{ selectedRoom.name }}</h2>
+                        <div class="flex items-center mt-1">
+                          <i class="fa fa-map-marker mr-1"></i>
+                          <span>{{ selectedRoom.location }}</span>
+                          <span class="mx-2">|</span>
+                          <i class="fa fa-users mr-1"></i>
+                          <span>{{ selectedRoom.capacity }}人</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-6 lg:p-8">
+                  <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-lg font-semibold">会议室状态</h3>
+                    <span class="px-2 py-1 text-xs rounded-full whitespace-nowrap" :class="getStatusColor(selectedRoom.status)">{{ selectedRoom.status }}</span>
+                  </div>
+                  <div class="space-y-4">
+                    <div>
+                      <h4 class="text-sm font-medium text-gray-500 mb-2">基本信息</h4>
+                      <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="flex items-center">
+                          <i class="fa fa-id-card-o text-gray-400 mr-2 w-4"></i>
+                          <span>会议室编号: R-{{ selectedRoom.id.toString().padStart(3, '0') }}</span>
+                        </div>
+                        <div class="flex items-center">
+                          <i class="fa fa-arrows-alt text-gray-400 mr-2 w-4"></i>
+                          <span>面积: 25m²</span>
+                        </div>
+                        <div class="flex items-center">
+                          <i class="fa fa-sun-o text-gray-400 mr-2 w-4"></i>
+                          <span>朝向: 南</span>
+                        </div>
+                        <div class="flex items-center">
+                          <i class="fa fa-wifi text-gray-400 mr-2 w-4"></i>
+                          <span>网络: 千兆WiFi</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 class="text-sm font-medium text-gray-500 mb-2">设施与服务</h4>
+                      <div class="flex flex-wrap gap-2">
+                        <span v-for="facility in selectedRoom.facilities" :key="facility" class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">{{ facility }}</span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 class="text-sm font-medium text-gray-500 mb-2">预约须知</h4>
+                      <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        <li>请提前30分钟到达会议室</li>
+                        <li>预约时长最长不超过4小时</li>
+                        <li>如需取消预约，请提前2小时操作</li>
+                        <li>使用完毕后请保持会议室整洁</li>
+                      </ul>
+                    </div>
+                    
+                    <div class="pt-2">
+                      <button @click="bookRoom(selectedRoom)" class="w-full py-3 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors duration-200 flex items-center justify-center">
+                        <i class="fa fa-calendar-plus-o mr-2"></i>
+                        立即预约
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-md">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">今日预约情况</h2>
+                <div class="flex items-center">
+                  <button class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-l-md hover:bg-gray-200 transition-colors duration-200">
+                    <i class="fa fa-chevron-left"></i>
+                  </button>
+                  <input type="date" v-model="selectedDate" class="px-3 py-1 text-sm border-y border-gray-200 focus:outline-none">
+                  <button class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-r-md hover:bg-gray-200 transition-colors duration-200">
+                    <i class="fa fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="relative h-16">
+                <div class="absolute inset-0 flex items-center">
+                  <div class="w-full h-2 bg-gray-200 rounded-full">
+                    <div v-for="booking in filteredBookings.filter(b => b.roomId === selectedRoom.id)" :key="booking.id" 
+                         class="absolute h-2 rounded-full" 
+                         :style="{ 
+                           left: ((new Date(booking.startTime).getHours() + new Date(booking.startTime).getMinutes()/60 - 9) / 10) * 100 + '%',
+                           width: ((new Date(booking.endTime).getHours() + new Date(booking.endTime).getMinutes()/60 - 
+                                   (new Date(booking.startTime).getHours() + new Date(booking.startTime).getMinutes()/60)) / 10) * 100 + '%',
+                           backgroundColor: booking.status === '已确认' ? '#36D399' : '#FBBD23'
+                         }"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="flex justify-between text-xs text-gray-500 mb-2">
+                <span>9:00</span>
+                <span>10:00</span>
+                <span>11:00</span>
+                <span>12:00</span>
+                <span>13:00</span>
+                <span>14:00</span>
+                <span>15:00</span>
+                <span>16:00</span>
+                <span>17:00</span>
+                <span>18:00</span>
+                <span>19:00</span>
+              </div>
+              
+              <div class="mt-6">
+                <h3 class="text-lg font-medium mb-4">预约记录</h3>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">预约人</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">开始时间</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">结束时间</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用途</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      <tr v-for="booking in filteredBookings.filter(b => b.roomId === selectedRoom.id)" :key="booking.id">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="flex items-center">
+                            <div class="flex-shrink-0 h-8 w-8">
+                              <img src="https://picsum.photos/id/1005/40/40" alt="用户头像" class="h-8 w-8 rounded-full object-cover">
+                            </div>
+                            <div class="ml-3">
+                              <div class="text-sm font-medium text-gray-900">{{ booking.userName }}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="text-sm text-gray-900">{{ booking.startTime }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="text-sm text-gray-900">{{ booking.endTime }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                          <div class="text-sm text-gray-900">{{ booking.purpose }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusColor(booking.status)">{{ booking.status }}</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div v-if="filteredBookings.filter(b => b.roomId === selectedRoom.id).length === 0" class="py-8 text-center text-gray-500">
+                  <i class="fa fa-calendar-o text-3xl mb-3"></i>
+                  <p>该会议室今日暂无预约</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 我要预约 -->
+          <div v-if="currentView === 'booking'" class="space-y-8">
+            <div class="bg-white rounded-xl p-6 shadow-md">
+              <h2 class="text-xl font-bold mb-6">选择会议室</h2>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="room in rooms" :key="room.id" class="bg-white rounded-xl overflow-hidden shadow-md hover-scale border border-gray-100 cursor-pointer" @click="selectRoom(room)">
+                  <img :src="room.image" alt="会议室图片" class="w-full h-48 object-cover">
+                  <div class="p-5">
+                    <div class="flex justify-between items-start mb-3">
+                      <h3 class="text-lg font-semibold text-gray-900">{{ room.name }}</h3>
+                      <span class="px-2 py-1 text-xs rounded-full whitespace-nowrap" :class="getStatusColor(room.status)">{{ room.status }}</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-500 mb-3">
+                      <i class="fa fa-map-marker mr-1"></i>
+                      <span>{{ room.location }}</span>
+                      <span class="mx-2">|</span>
+                      <i class="fa fa-users mr-1"></i>
+                      <span>{{ room.capacity }}人</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                      <span v-for="facility in room.facilities" :key="facility" class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">{{ facility }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <button class="px-4 py-2 border border-primary text-primary rounded-md hover:bg-primary/5 transition-colors duration-200">查看详情</button>
+                      <button v-if="room.status === '空闲'" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors duration-200">立即预约</button>
+                      <button v-else disabled class="px-4 py-2 bg-gray-200 text-gray-400 rounded-md cursor-not-allowed">不可预约</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 预约记录 -->
+          <div v-if="currentView === 'history'" class="space-y-8">
+            <div class="bg-white rounded-xl p-6 shadow-md">
+              <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                <div>
+                  <h2 class="text-xl font-bold">我的预约记录</h2>
+                  <p class="text-gray-500 mt-1">共有 {{ userBookings.length }} 条记录</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex items-center space-x-3">
+                  <div class="relative">
+                    <select class="pl-4 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white">
+                      <option value="">全部状态</option>
+                      <option value="已确认">已确认</option>
+                      <option value="待确认">待确认</option>
+                      <option value="已取消">已取消</option>
+                      <option value="已过期">已过期</option>
+                    </select>
+                    <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                  </div>
+                  <div class="relative">
+                    <select class="pl-4 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white">
+                      <option value="">全部时间</option>
+                      <option value="今天">今天</option>
+                      <option value="本周">本周</option>
+                      <option value="本月">本月</option>
+                      <option value="今年">今年</option>
+                    </select>
+                    <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">会议室</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">参与人数</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用途</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                      <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr v-for="booking in userBookings" :key="booking.id">
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="flex-shrink-0 h-10 w-10">
+                            <img :src="rooms.find(r => r.id === booking.roomId)?.image || 'https://picsum.photos/id/1067/100/100'" alt="会议室图片" class="h-10 w-10 rounded-md object-cover">
+                          </div>
+                          <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">{{ booking.roomName }}</div>
+                            <div class="text-sm text-gray-500">{{ rooms.find(r => r.id === booking.roomId)?.location }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ booking.startTime.split(' ')[0] }}</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ booking.startTime.split(' ')[1] }} - {{ booking.endTime.split(' ')[1] }}</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">8人</div>
+                      </td>
+                      <td class="px-6 py-4">
+                        <div class="text-sm text-gray-900 truncate max-w-xs">{{ booking.purpose }}</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusColor(booking.status)">{{ booking.status }}</span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button v-if="booking.status === '已确认'" @click="cancelBooking(booking.id)" class="text-danger hover:text-danger/80 mr-3">取消</button>
+                        <button @click="selectRoom(rooms.find(r => r.id === booking.roomId))" class="text-primary hover:text-primary/80">详情</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-if="userBookings.length === 0" class="py-8 text-center text-gray-500">
+                <i class="fa fa-calendar-o text-3xl mb-3"></i>
+                <p>您还没有任何预约记录</p>
+                <button @click="goToView('booking')" class="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors duration-200">立即预约</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+    });
+    
+    app.mount('#app');
+    
+    // 初始化图表
+    window.addEventListener('load', function() {
+      const ctx = document.getElementById('bookingChart');
+      
+      if (ctx) {
+        const labels = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+        
+        // 统计各时间段的预约数量
+        const bookingCounts = {};
+        labels.forEach(label => {
+          bookingCounts[label] = 0;
+        });
+        
+        mockData.bookings.forEach(booking => {
+          const startTime = booking.startTime.split(' ')[1];
+          const endTime = booking.endTime.split(' ')[1];
+          
+          labels.forEach(label => {
+            const labelTime = label.split(':')[0];
+            const startHour = startTime.split(':')[0];
+            const endHour = endTime.split(':')[0];
+            
+            if (parseInt(labelTime) >= parseInt(startHour) && parseInt(labelTime) < parseInt(endHour)) {
+              bookingCounts[label]++;
+            }
+          });
+        });
+        
+        const data = labels.map(label => bookingCounts[label]);
+        
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: '预约数量',
+              data: data,
+              backgroundColor: [
+                'rgba(22, 93, 255, 0.6)',
+                'rgba(22, 93, 255, 0.6)',
+                'rgba(22, 93, 255, 0.6)',
+                'rgba(22, 93, 255, 0.6)',
+                'rgba(22, 93, 255, 0.6)',
+                'rgba(22, 93, 255, 0.6)',
+                'rgba(22, 93, 255, 0.6)',
+                'rgba(22, 93, 255, 0.6)',
+                'rgba(22, 93, 255, 0.6)',
+                'rgba(22, 93, 255, 0.6)'
+              ],
+              borderColor: [
+                'rgba(22, 93, 255, 1)',
+                'rgba(22, 93, 255, 1)',
+                'rgba(22, 93, 255, 1)',
+                'rgba(22, 93, 255, 1)',
+                'rgba(22, 93, 255, 1)',
+                'rgba(22, 93, 255, 1)',
+                'rgba(22, 93, 255, 1)',
+                'rgba(22, 93, 255, 1)',
+                'rgba(22, 93, 255, 1)',
+                'rgba(22, 93, 255, 1)'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          }
+        });
+      }
+    });
+  </script>
+
+
+    </body></html>
